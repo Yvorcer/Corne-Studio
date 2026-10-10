@@ -101,7 +101,7 @@ Corne Studio is built with Tauri (a Rust core plus the system webview) and talks
 | **Windows 10 / 11** (x64) | 🟡 Builds in CI; not yet tested with a keyboard | `.msi` or `-setup.exe` | Unsigned, so SmartScreen warns: **More info → Run anyway**. Uses WebView2 (built into Windows 11; the installer fetches it on Windows 10) |
 | **Linux** (x64; Ubuntu 22.04+, Debian, Fedora, Arch…) | 🟡 Builds in CI; not yet tested with a keyboard | `.AppImage`, `.deb`, `.rpm` | Needs a udev rule so non-root users can open the keyboard: install [`linux/99-corne-studio.rules`](linux/99-corne-studio.rules) (instructions are in the file) |
 
-Get the installers from the [**Releases**](https://github.com/Yvorcer/Corne-Studio/releases) page, or build from source as shown below.
+Get the installers from the [**Releases**](https://github.com/Yvorcer/corne-studio/releases) page, or build from source as shown below.
 
 ## How it works
 
@@ -194,8 +194,8 @@ sudo apt install libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchel
 ```
 
 ```sh
-git clone https://github.com/Yvorcer/Corne-Studio.git
-cd Corne-Studio
+git clone https://github.com/Yvorcer/corne-studio.git
+cd corne-studio
 npm install
 
 npm run tauri dev       # run with hot reload
