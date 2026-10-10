@@ -1,0 +1,37 @@
+{
+  "name": "corne-studio",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Desktop keymap editor for the Corne split keyboard family (v1\u2013v4), live over USB via VIA.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Yvorcer/Corne-Studio.git"
+  },
+  "homepage": "https://github.com/Yvorcer/Corne-Studio",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "node scripts/tauri.mjs",
+    "test": "vitest run",
+    "icon": "node --experimental-strip-types --no-warnings scripts/make-icon.ts src-tauri/app-icon.svg src-tauri/app-icon.png && npm run tauri icon src-tauri/app-icon.png && rm -rf src-tauri/icons/android src-tauri/icons/ios && cp src-tauri/app-icon.svg src/assets/app-icon.svg"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2.8.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "@tauri-apps/cli": "^2",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.7.0",
+    "typescript": "~6.0.3",
+    "vite": "^6.4.4",
+    "vitest": "^3.2.7"
+  }
+}
