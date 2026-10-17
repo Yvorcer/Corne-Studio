@@ -39,15 +39,15 @@ const TABS: { id: Tab; label: string }[] = [
 export const BASIC_KEYS = ALL_KEYS.filter((k) => k.code >= 0x04 && k.code <= 0xff);
 
 export function KeyPicker() {
-  const { selected, layer, keymap, layerCount, macroCount, assign } = useStore();
+  const { selected, layer, keymap, layerCount, macroCount, assign, capturing: capture, setCapturing: setCapture } = useStore();
   const [tab, setTab] = useState<Tab>("basic");
   const [query, setQuery] = useState("");
-  const [capture, setCapture] = useState(false);
 
   const current = selected ? keymap[layer]?.[selected.row]?.[selected.col] : undefined;
   const currentDecoded = current !== undefined ? decode(current) : undefined;
 
-  // "Press a key" mode: the next physical key press is assigned.
+  // "Press a key" mode (the button, or double-clicking a key): the next key typed is assigned.
+  // Clicking anywhere else cancels it.
   useEffect(() => {
     if (!capture) return;
     const onKey = (e: KeyboardEvent) => {
@@ -57,9 +57,16 @@ export function KeyPicker() {
       if (code !== undefined) assign(code);
       setCapture(false);
     };
+    const onPointer = (e: MouseEvent) => {
+      if (!(e.target as Element)?.closest?.(".chip-capture")) setCapture(false);
+    };
     window.addEventListener("keydown", onKey, true);
-    return () => window.removeEventListener("keydown", onKey, true);
-  }, [capture, assign]);
+    window.addEventListener("mousedown", onPointer, true);
+    return () => {
+      window.removeEventListener("keydown", onKey, true);
+      window.removeEventListener("mousedown", onPointer, true);
+    };
+  }, [capture, assign, setCapture]);
 
   const layerKeys = useMemo(() => {
     const fns: [string, (l: number) => number, string][] = [
@@ -125,10 +132,10 @@ export function KeyPicker() {
             ∅ None
           </button>
           <button
-            className={`chip ${capture ? "chip-active" : ""}`}
+            className={`chip chip-capture ${capture ? "chip-active" : ""}`}
             disabled={disabled}
-            onClick={() => setCapture((c) => !c)}
-            title="Press any key on a keyboard to assign it"
+            onClick={() => setCapture(!capture)}
+            title="Press any key on a keyboard to assign it (or double-click a key)"
           >
             {capture ? "Press a key…" : "⌨ Press to assign"}
           </button>

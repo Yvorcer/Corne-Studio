@@ -47,6 +47,8 @@ interface State {
   view: View;
   layer: number;
   selected: { row: number; col: number } | null;
+  /** "Press to assign": the next key typed is assigned to the selected key */
+  capturing: boolean;
   undoStack: Edit[];
   redoStack: Edit[];
   toasts: Toast[];
@@ -62,6 +64,7 @@ interface State {
   setView: (v: View) => void;
   setLayer: (l: number) => void;
   select: (k: { row: number; col: number } | null) => void;
+  setCapturing: (on: boolean) => void;
   assign: (code: number) => Promise<void>;
   setKey: (layer: number, row: number, col: number, code: number, record?: boolean) => Promise<boolean>;
   undo: () => Promise<void>;
@@ -118,6 +121,7 @@ export const useStore = create<State>((set, get) => ({
   view: "keymap",
   layer: 0,
   selected: null,
+  capturing: false,
   undoStack: [],
   redoStack: [],
   toasts: [],
@@ -201,7 +205,8 @@ export const useStore = create<State>((set, get) => ({
 
   setView: (view) => set({ view }),
   setLayer: (layer) => set({ layer }),
-  select: (selected) => set({ selected }),
+  select: (selected) => set({ selected, capturing: false }),
+  setCapturing: (capturing) => set({ capturing: capturing && get().selected !== null }),
 
   assign: async (code) => {
     const { selected, layer } = get();

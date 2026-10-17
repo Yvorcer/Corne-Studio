@@ -120,6 +120,10 @@ input.search { min-width: 260px; }
 .cap:hover .cap-base { stroke: var(--layer); }
 .cap.selected .cap-base { stroke: var(--layer); stroke-width: 2.5; filter: drop-shadow(0 0 6px var(--layer)); }
 .cap.trns .legend, .cap.none .legend { fill: var(--muted); opacity: 0.6; }
+.cap.capturing .cap-base { stroke: var(--primary); stroke-width: 3; animation: capture-pulse 1s ease-in-out infinite; }
+.cap.capturing .cap-top { fill: color-mix(in srgb, var(--primary) 22%, var(--cap-top)); }
+@keyframes capture-pulse { 50% { stroke-opacity: 0.35; } }
+.capture-hint { color: var(--primary); font-weight: 600; }
 .cap.dim .legend { opacity: 0.42; }
 .cap.dim .cap-top { opacity: 0.75; }
 .cap.macro .cap-top { fill: color-mix(in srgb, #f6e05e 18%, var(--cap-top)); }

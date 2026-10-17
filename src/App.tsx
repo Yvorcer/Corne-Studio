@@ -209,8 +209,25 @@ function ConnectScreen() {
 }
 
 function KeymapView() {
-  const { keymap, keys, layer, layerCount, selected, setLayer, select, undo, redo, undoStack, redoStack, reload, busy, layerNames: names, renameLayer } =
-    useStore();
+  const {
+    keymap,
+    keys,
+    layer,
+    layerCount,
+    selected,
+    setLayer,
+    select,
+    undo,
+    redo,
+    undoStack,
+    redoStack,
+    reload,
+    busy,
+    layerNames: names,
+    renameLayer,
+    capturing,
+    setCapturing,
+  } = useStore();
   const [editing, setEditing] = useState<number | null>(null);
   const [hover, setHover] = useState<{ row: number; col: number } | null>(null);
 
@@ -255,14 +272,30 @@ function KeymapView() {
       </header>
 
       <div className="board-wrap" onClick={(e) => e.target === e.currentTarget && select(null)}>
-        <KeyboardView keys={keys} codes={keymap[layer]} layer={layer} selected={selected} onSelect={select} onHover={setHover} />
+        <KeyboardView
+          keys={keys}
+          codes={keymap[layer]}
+          layer={layer}
+          selected={selected}
+          onSelect={select}
+          onActivate={(k) => {
+            select(k);
+            setCapturing(true);
+          }}
+          capturing={capturing}
+          onHover={setHover}
+        />
         <div className="hover-info">
-          {hoverCode !== undefined ? (
+          {capturing && selected ? (
+            <span className="capture-hint">
+              Type the key you want on key {selected.row},{selected.col}… <span className="muted">(click anywhere to cancel)</span>
+            </span>
+          ) : hoverCode !== undefined ? (
             <>
               <code>{decode(hoverCode).name}</code> <span className="muted">· matrix {hover!.row},{hover!.col}</span>
             </>
           ) : (
-            <span className="muted">Changes are written to the keyboard instantly.</span>
+            <span className="muted">Changes are written to the keyboard instantly. Double-click a key, then type, to change it fast.</span>
           )}
         </div>
       </div>

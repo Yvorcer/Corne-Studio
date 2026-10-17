@@ -21,6 +21,10 @@ interface Props {
   /** Keys drawn dimmed (e.g. transparent keys showing what they fall through to) */
   dimmed?: Set<string>;
   onSelect?: (k: { row: number; col: number }) => void;
+  /** Double-click on a key */
+  onActivate?: (k: { row: number; col: number }) => void;
+  /** The selected key is waiting for a key press to be assigned */
+  capturing?: boolean;
   onHover?: (k: { row: number; col: number } | null) => void;
   /** Dim everything except tested/pressed (tester mode) */
   testerMode?: boolean;
@@ -35,6 +39,8 @@ export const KeyboardView = memo(function KeyboardView({
   tested,
   dimmed,
   onSelect,
+  onActivate,
+  capturing,
   onHover,
   testerMode,
 }: Props) {
@@ -65,6 +71,8 @@ export const KeyboardView = memo(function KeyboardView({
             isDimmed={dimmed?.has(id) ?? false}
             testerMode={testerMode}
             onSelect={onSelect}
+            onActivate={onActivate}
+            isCapturing={!!capturing && selected?.row === k.row && selected?.col === k.col}
             onHover={onHover}
           />
         );
@@ -83,6 +91,8 @@ interface CapProps {
   isDimmed: boolean;
   testerMode?: boolean;
   onSelect?: Props["onSelect"];
+  onActivate?: Props["onActivate"];
+  isCapturing?: boolean;
   onHover?: Props["onHover"];
 }
 
@@ -92,7 +102,7 @@ function legendSize(label: string, w: number): number {
   return base * Math.min(1, w);
 }
 
-function Keycap({ k, d, layer, isSelected, isPressed, isTested, isDimmed, testerMode, onSelect, onHover }: CapProps) {
+function Keycap({ k, d, layer, isSelected, isPressed, isTested, isDimmed, isCapturing, testerMode, onSelect, onActivate, onHover }: CapProps) {
   const x = k.x * U + GAP / 2;
   const y = k.y * U + GAP / 2;
   const w = k.w * U - GAP;
@@ -106,6 +116,7 @@ function Keycap({ k, d, layer, isSelected, isPressed, isTested, isDimmed, tester
   const classes = [
     "cap",
     isSelected && "selected",
+    isCapturing && "capturing",
     isPressed && "pressed",
     testerMode && isTested && "tested",
     isTrns && "trns",
@@ -123,6 +134,7 @@ function Keycap({ k, d, layer, isSelected, isPressed, isTested, isDimmed, tester
     <g
       className={classes}
       onClick={() => onSelect?.({ row: k.row, col: k.col })}
+      onDoubleClick={() => onActivate?.({ row: k.row, col: k.col })}
       onMouseEnter={() => onHover?.({ row: k.row, col: k.col })}
       onMouseLeave={() => onHover?.(null)}
       style={{ "--layer": layerColor(layer), "--accent": accent ?? "transparent" } as React.CSSProperties}

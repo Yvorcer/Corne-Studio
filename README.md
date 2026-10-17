@@ -31,7 +31,7 @@ The [Yushakobo Corne V4 Cherry](https://shop.yushakobo.jp/en/products/8961) ship
 ## Features
 
 ### Keymap editor
-Six layers with their own colours (double-click a tab to rename it). Click any key and choose from a searchable, categorised palette, or press **⌨ Press to assign** and hit a key. Every change is written to the keyboard instantly, with **⌘Z / ⇧⌘Z** undo/redo (**Ctrl+Z / Ctrl+Shift+Z** on Linux). Modifier legends follow your OS: `⌃ ⌥ ⇧ ⌘` on macOS, `Ctrl Alt ⇧ Super` on Linux. Hover a key to see its QMK name and matrix position.
+Six layers with their own colours (double-click a tab to rename it). Click any key and choose from a searchable, categorised palette. Or **double-click a key and just type** the key you want: the next key you press is assigned (the **⌨ Press to assign** button does the same). Every change is written to the keyboard instantly, with **⌘Z / ⇧⌘Z** undo/redo (**Ctrl+Z / Ctrl+Shift+Z** on Linux). Modifier legends follow your OS: `⌃ ⌥ ⇧ ⌘` on macOS, `Ctrl Alt ⇧ Super` on Linux. Hover a key to see its QMK name and matrix position.
 
 <img src="docs/images/keymap.png" alt="Corne Studio keymap editor" />
 
