@@ -8,7 +8,6 @@
 Plug in, click a key, pick a new one, done. Changes go straight to the keyboard over USB. No compiling, no flashing, no website.
 
 ![macOS](https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=white)
-![Windows](https://img.shields.io/badge/Windows-0078D4?logo=windows&logoColor=white)
 ![Linux](https://img.shields.io/badge/Linux-FCC624?logo=linux&logoColor=black)
 ![Tauri 2](https://img.shields.io/badge/Tauri-2-24C8DB?logo=tauri&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
@@ -26,13 +25,13 @@ Plug in, click a key, pick a new one, done. Changes go straight to the keyboard 
 The [Yushakobo Corne V4 Cherry](https://shop.yushakobo.jp/en/products/8961) ships with VIA-enabled QMK firmware and is normally configured through the Remap website. Corne Studio is a dedicated desktop app for the same job:
 
 - It **recognises which Corne you plugged in** (v1–v3, v4.0, v4.1, v4 mini and popular clones) and draws that board as it really is: column stagger, the v4 inner keys, and the angled thumb cluster with the 1.5u key.
-- It's a real desktop app for macOS, Windows and Linux, so there's no bookmark to forget.
+- It's a real desktop app for macOS and Linux, so there's no bookmark to forget.
 - It saves snapshots of your setups and backs up the original keymap automatically.
 
 ## Features
 
 ### Keymap editor
-Six layers with their own colours (double-click a tab to rename it). Click any key and choose from a searchable, categorised palette, or press **⌨ Press to assign** and hit a key. Every change is written to the keyboard instantly, with **⌘Z / ⇧⌘Z** undo/redo (**Ctrl+Z / Ctrl+Shift+Z** on Windows and Linux). Modifier legends follow your OS: `⌃ ⌥ ⇧ ⌘` on macOS, `Ctrl Alt ⇧ Win/Super` elsewhere. Hover a key to see its QMK name and matrix position.
+Six layers with their own colours (double-click a tab to rename it). Click any key and choose from a searchable, categorised palette, or press **⌨ Press to assign** and hit a key. Every change is written to the keyboard instantly, with **⌘Z / ⇧⌘Z** undo/redo (**Ctrl+Z / Ctrl+Shift+Z** on Linux). Modifier legends follow your OS: `⌃ ⌥ ⇧ ⌘` on macOS, `Ctrl Alt ⇧ Super` on Linux. Hover a key to see its QMK name and matrix position.
 
 <img src="docs/images/keymap.png" alt="Corne Studio keymap editor" />
 
@@ -41,7 +40,7 @@ Hold a layer key (Lower, Raise, any `MO`/`LT`/`TT`) and a see-through heads-up d
 
 <img src="docs/images/overlay.png" alt="Layer overlay over another app" />
 
-It only appears after you've held the layer for a moment (300 ms by default), so quick layer taps while typing don't make it flash. Delay, opacity, size and position are adjustable under **Layer overlay**, along with an **Open at login** switch. While the overlay is on, closing the window keeps Corne Studio running in the background: click the Dock icon to bring it back, or quit with ⌘Q.
+It appears once you've held a layer for 2 seconds (adjustable), so typing on a layer doesn't make it pop up; hold and wait when you want to look. Delay, opacity, size and position are adjustable under **Layer overlay**, along with an **Open at login** switch. While the overlay is on, closing the window keeps Corne Studio running in the background: click the Dock icon to bring it back, or quit with ⌘Q.
 
 How it works: layer keys send nothing to the computer, so while the overlay is on, the app reads the keyboard's switch matrix about 40 times a second in a background thread (`src-tauri/src/overlay.rs`). It then resolves the active layer the way QMK does: the highest active layer that isn't transparent, plus tri-layer. Toggled layers (`TG`/`TO`/`DF`) aren't visible in the matrix, so they don't trigger it.
 
@@ -102,13 +101,12 @@ If a keyboard isn't recognised, the app shows the picker below instead of guessi
 
 ## Operating systems
 
-Corne Studio is built with Tauri (a Rust core plus the system webview) and talks to the keyboard through [hidapi](https://github.com/libusb/hidapi), which supports all three desktop platforms. [GitHub Actions](.github/workflows/build.yml) builds the installers for each one whenever a release is tagged.
+Corne Studio is a macOS and Linux app, built with Tauri (a Rust core plus the system webview). It talks to the keyboard through [hidapi](https://github.com/libusb/hidapi). [GitHub Actions](.github/workflows/build.yml) builds the installers for both whenever a release is tagged. The layer overlay is tested on macOS; on Linux it needs a compositing desktop (GNOME, KDE and most others) for its see-through window.
 
 | OS | Status | Download | Notes |
 |---|---|---|---|
 | **macOS** (Apple Silicon and Intel, separate downloads) | ✅ Built and tested with a real Corne v4.1 | `.dmg` (~2.3 MB) | The app isn't notarized yet. On first launch, right-click → **Open**, or run `xattr -dr com.apple.quarantine "/Applications/Corne Studio.app"` |
-| **Windows 10 / 11** (x64) | 🟡 Builds in CI; not yet tested with a keyboard | `.msi` or `-setup.exe` | Unsigned, so SmartScreen warns: **More info → Run anyway**. Uses WebView2 (built into Windows 11; the installer fetches it on Windows 10) |
-| **Linux** (x64; Ubuntu 22.04+, Debian, Fedora, Arch…) | 🟡 Builds in CI; not yet tested with a keyboard | `.AppImage`, `.deb`, `.rpm` | Needs a udev rule so non-root users can open the keyboard: install [`linux/99-corne-studio.rules`](linux/99-corne-studio.rules) (instructions are in the file) |
+| **Linux** (x64; Ubuntu 22.04+, Debian, Fedora, Arch…) | 🟡 Supported in the code; the first CI build comes with the first release. Not yet tested with a keyboard | `.AppImage`, `.deb`, `.rpm` | Needs a udev rule so non-root users can open the keyboard: install [`linux/99-corne-studio.rules`](linux/99-corne-studio.rules) (instructions are in the file) |
 
 Get the installers from the [**Releases**](https://github.com/Yvorcer/corne-studio/releases) page, or build from source as shown below.
 
@@ -224,7 +222,7 @@ Regenerate the app icon (drawn from the real layout geometry) with `npm run icon
 | Path | What's there |
 |---|---|
 | `src-tauri/src/hid.rs` | Finds the `0xFF60` raw-HID interface, sends and receives 32-byte reports, emits hot-plug events |
-| `src-tauri/src/profiles.rs` | Profile storage in the OS app-data folder (`~/Library/Application Support/com.yvorcer.cornestudio` on macOS, `%APPDATA%\com.yvorcer.cornestudio` on Windows, `~/.local/share/com.yvorcer.cornestudio` on Linux) |
+| `src-tauri/src/profiles.rs` | Profile storage in the OS app-data folder (`~/Library/Application Support/com.yvorcer.cornestudio` on macOS, `~/.local/share/com.yvorcer.cornestudio` on Linux) |
 | `src/lib/boards.ts` | Board registry: USB IDs, matrix sizes, layouts, revision detection |
 | `src/lib/via.ts` | VIA protocol client: keymap, macros, matrix state |
 | `src-tauri/src/overlay.rs` | Layer overlay: background matrix poller, QMK layer resolution, floating click-through window |
@@ -237,7 +235,7 @@ Regenerate the app icon (drawn from the real layout geometry) with `npm run icon
 | `src/components/` | Keyboard SVG, key picker, macro editor, tester, profiles |
 | `scripts/make-icon.ts` | Generates the app icon from `corneLayout.ts` |
 | `scripts/tauri.mjs` | Cross-platform wrapper around the Tauri CLI |
-| `.github/workflows/build.yml` | CI: type-check + tests on every push; macOS/Windows/Linux installers for `v*` tags (published as a release) or manual runs |
+| `.github/workflows/build.yml` | CI: type-check + tests on every push; macOS and Linux installers for `v*` tags (published as a release) or manual runs |
 | `linux/99-corne-studio.rules` | udev rule for keyboard access on Linux |
 
 ## Good to know

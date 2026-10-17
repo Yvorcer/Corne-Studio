@@ -273,8 +273,8 @@ export function keycodeFromDomCode(domCode: string): number | undefined {
 }
 
 // ---------------------------------------------------------------- mods
-// Legends follow the host OS: ⌃⌥⇧⌘ on macOS, Ctrl/Alt/Shift/Win (or Super) elsewhere.
-export type ModStyle = "mac" | "windows" | "linux";
+// Legends follow the host OS: ⌃⌥⇧⌘ on macOS, Ctrl/Alt/Shift/Super on Linux.
+export type ModStyle = "mac" | "linux";
 let modStyle: ModStyle = "mac";
 export function setModStyle(style: ModStyle) {
   modStyle = style;
@@ -296,12 +296,11 @@ export function modNames(): Record<number, { sym: string; name: string }> {
       [MOD.SFT]: { sym: "⇧", name: "Shift" },
       [MOD.GUI]: { sym: "⌘", name: "Command" },
     };
-  const gui = modStyle === "windows" ? "Win" : "Super";
   return {
     [MOD.CTL]: { sym: "Ctrl", name: "Control" },
     [MOD.ALT]: { sym: "Alt", name: "Alt" },
     [MOD.SFT]: { sym: "⇧", name: "Shift" },
-    [MOD.GUI]: { sym: gui, name: gui },
+    [MOD.GUI]: { sym: "Super", name: "Super" },
   };
 }
 

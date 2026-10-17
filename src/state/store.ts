@@ -5,7 +5,7 @@ import { parseMacros, serializeMacros, type Macro } from "../lib/macros";
 import { CORNE_KEYS, LAYOUTS, type KeyGeom, type LayoutId } from "../lib/corneLayout";
 import { boardById, detectBoard, deviceKey, rankDevices, type BoardDef, type Detection } from "../lib/boards";
 import { ORIGINAL_BACKUP_ID, fitKeymap, makeProfile, parseProfile, type Profile } from "../lib/profiles";
-import { OVERLAY_DEFAULTS, loadJson, loadLayerNames, saveJson, saveLayerNames, type OverlaySettings } from "../lib/settings";
+import { loadLayerNames, loadOverlaySettings, saveLayerNames, saveOverlaySettings, type OverlaySettings } from "../lib/settings";
 
 export type Status = "disconnected" | "connecting" | "ready" | "error";
 export type View = "keymap" | "macros" | "tester" | "profiles" | "overlay";
@@ -122,7 +122,7 @@ export const useStore = create<State>((set, get) => ({
   redoStack: [],
   toasts: [],
   layerNames: loadLayerNames(),
-  overlay: loadJson("overlay", OVERLAY_DEFAULTS),
+  overlay: loadOverlaySettings(),
   via: new Via(hidTransport, 8, 7),
 
   connect: async (path) => {
@@ -308,7 +308,7 @@ export const useStore = create<State>((set, get) => ({
 
   setOverlay: (patch) => {
     const overlay = { ...get().overlay, ...patch };
-    saveJson("overlay", overlay);
+    saveOverlaySettings(overlay);
     set({ overlay });
   },
 

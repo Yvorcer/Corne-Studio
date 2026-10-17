@@ -55,13 +55,12 @@ describe("keycodes", () => {
     expect(keycodeFromDomCode("Digit0")).toBe(0x27);
   });
 
-  it("uses PC modifier legends on Windows/Linux", () => {
-    setModStyle("windows");
-    expect(decode(0xe3).label).toBe("Win");
+  it("uses Ctrl/Alt/Super legends on Linux", () => {
+    setModStyle("linux");
+    expect(decode(0xe3).label).toBe("Super");
+    expect(decode(0xe7).label).toBe("RSuper");
     expect(decode(encode.mods(MOD.CTL, 0x06)).label).toBe("Ctrl+C");
     expect(decode(encode.modTap(MOD.CTL | MOD.SFT, 0x04)).hold).toBe("Ctrl+⇧");
-    setModStyle("linux");
-    expect(decode(0xe7).label).toBe("RSuper");
     setModStyle("mac");
     expect(decode(0xe3).label).toBe("⌘");
   });

@@ -130,10 +130,18 @@ export class Via {
     await this.writeBuffer(CMD.MACRO_SET_BUFFER, [0x00], last);
   }
 
+  /** Byte where row data starts in matrix replies (3 on current QMK, 2 on older firmware). */
+  private matrixRowsStart?: number;
+
   /** Returns pressed[row][col] for the physical switch matrix (both halves). */
   async matrixState(): Promise<boolean[][]> {
-    const r = await this.cmd([CMD.GET_KEYBOARD_VALUE, KBVAL.SWITCH_MATRIX_STATE]);
-    return parseMatrixState(r.slice(2), this.rows, this.cols);
+    if (this.matrixRowsStart === undefined) {
+      // Current QMK echoes the requested row offset in byte 2 and puts rows after it.
+      const probe = await this.cmd([CMD.GET_KEYBOARD_VALUE, KBVAL.SWITCH_MATRIX_STATE, 1]);
+      this.matrixRowsStart = probe[2] === 1 ? 3 : 2;
+    }
+    const r = await this.cmd([CMD.GET_KEYBOARD_VALUE, KBVAL.SWITCH_MATRIX_STATE, 0]);
+    return parseMatrixState(r.slice(this.matrixRowsStart), this.rows, this.cols);
   }
 }
 

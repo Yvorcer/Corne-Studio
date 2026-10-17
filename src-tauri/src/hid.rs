@@ -37,8 +37,15 @@ pub struct HidState {
 
 impl HidState {
     pub fn new() -> Self {
+        let api = HidApi::new().ok();
+        // hidapi opens devices exclusively on macOS by default; share the keyboard so VIA,
+        // Remap or the QMK tools keep working while Corne Studio runs in the background.
+        #[cfg(target_os = "macos")]
+        if let Some(api) = &api {
+            api.set_open_exclusive(false);
+        }
         Self {
-            api: Mutex::new(HidApi::new().ok()),
+            api: Mutex::new(api),
             device: Mutex::new(None),
         }
     }

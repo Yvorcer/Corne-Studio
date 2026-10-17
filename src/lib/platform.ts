@@ -1,9 +1,7 @@
-export type Platform = "mac" | "windows" | "linux";
+export type Platform = "mac" | "linux";
 
 export function detectPlatform(ua: string = typeof navigator !== "undefined" ? navigator.userAgent : ""): Platform {
-  if (/Mac|iPhone|iPad/i.test(ua)) return "mac";
-  if (/Windows/i.test(ua)) return "windows";
-  return "linux";
+  return /Mac|iPhone|iPad/i.test(ua) ? "mac" : "linux";
 }
 
 export const PLATFORM: Platform = detectPlatform();

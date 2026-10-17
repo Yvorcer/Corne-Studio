@@ -39,8 +39,6 @@ jobs:
           - os: macos-latest
             target: x86_64-apple-darwin
             args: --target x86_64-apple-darwin
-          - os: windows-latest
-            args: ""
           - os: ubuntu-22.04
             args: ""
     runs-on: ${{ matrix.os }}
@@ -85,8 +83,6 @@ jobs:
           if-no-files-found: ignore
           path: |
             src-tauri/target/**/release/bundle/dmg/*.dmg
-            src-tauri/target/**/release/bundle/msi/*.msi
-            src-tauri/target/**/release/bundle/nsis/*.exe
             src-tauri/target/**/release/bundle/deb/*.deb
             src-tauri/target/**/release/bundle/rpm/*.rpm
             src-tauri/target/**/release/bundle/appimage/*.AppImage

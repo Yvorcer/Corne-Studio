@@ -124,14 +124,21 @@ fn highest(mask: u32) -> u8 {
     31 - mask.leading_zeros() as u8
 }
 
-/// VIA switch-matrix reply: [0x02, 0x03, rows × ceil(cols/8) bytes, big-endian, bit n = col n]
-pub fn parse_matrix(reply: &[u8], rows: usize, cols: usize) -> Vec<(usize, usize)> {
+/// Where the row bytes start in a VIA switch-matrix reply. Current QMK replies
+/// `[0x02, 0x03, offset, rows…]` (the request's row offset is echoed back); older firmware
+/// has no offset byte: `[0x02, 0x03, rows…]`.
+pub fn matrix_rows_start(probe_reply: &[u8], probe_offset: u8) -> usize {
+    if probe_reply.get(2) == Some(&probe_offset) { 3 } else { 2 }
+}
+
+/// Rows are `ceil(cols/8)` big-endian bytes each; bit n = column n.
+pub fn parse_matrix(reply: &[u8], start: usize, rows: usize, cols: usize) -> Vec<(usize, usize)> {
     let bytes_per_row = cols.div_ceil(8);
     let mut out = Vec::new();
     for r in 0..rows {
         let mut v: u32 = 0;
         for b in 0..bytes_per_row {
-            v = (v << 8) | *reply.get(2 + r * bytes_per_row + b).unwrap_or(&0) as u32;
+            v = (v << 8) | *reply.get(start + r * bytes_per_row + b).unwrap_or(&0) as u32;
         }
         out.extend((0..cols).filter(|c| (v >> c) & 1 == 1).map(|c| (r, c)));
     }
@@ -186,6 +193,7 @@ fn place(app: &AppHandle, win: &WebviewWindow, cfg: &OverlayConfig) {
 }
 
 fn show(app: &AppHandle, cfg: &OverlayConfig, ev: &LayerEvent) {
+    eprintln!("[overlay] show layer {} after {} ms hold", ev.layer, cfg.delay_ms);
     let Some(win) = app.get_webview_window(LABEL) else { return };
     let _ = app.emit_to(LABEL, "overlay-show", ev);
     place(app, &win, cfg);
@@ -195,6 +203,7 @@ fn show(app: &AppHandle, cfg: &OverlayConfig, ev: &LayerEvent) {
 }
 
 fn hide(app: &AppHandle) {
+    eprintln!("[overlay] hide");
     if let Some(win) = app.get_webview_window(LABEL) {
         let _ = win.hide();
     }
@@ -206,10 +215,12 @@ fn hide(app: &AppHandle) {
 pub fn spawn_poller(app: AppHandle) {
     thread::spawn(move || {
         let mut shown: Option<LayerEvent> = None;
+        // Row-data position in matrix replies; detected per connection (see matrix_rows_start).
+        let mut rows_start: Option<usize> = None;
         let mut candidate: Option<(u8, Instant)> = None;
         let state = app.state::<OverlayState>();
-        #[cfg(debug_assertions)]
-        let mut debug_last: Option<(u32, usize)> = None;
+        let mut last_seen: Option<(u32, usize)> = None;
+        let mut layer_since = Instant::now();
         // Debug builds: CORNE_OVERLAY_PREVIEW=<layer> previews a layer shortly after startup.
         #[cfg(debug_assertions)]
         if let Some(layer) = std::env::var("CORNE_OVERLAY_PREVIEW").ok().and_then(|v| v.parse::<u8>().ok()) {
@@ -231,14 +242,21 @@ pub fn spawn_poller(app: AppHandle) {
             };
 
             let reading = cfg.enabled && !cfg.keymap.is_empty();
-            let pressed = if reading {
-                match app.state::<HidState>().transact(&[0x02, 0x03]) {
-                    Ok(reply) if reply[0] == 0x02 => Some(parse_matrix(&reply, cfg.rows, cfg.cols)),
+            let hid = app.state::<HidState>();
+            if reading && rows_start.is_none() {
+                // Ask for row offset 1: firmware that echoes it uses the newer reply layout.
+                rows_start = hid.transact(&[0x02, 0x03, 0x01]).ok().map(|r| matrix_rows_start(&r, 1));
+            }
+            let pressed = match (reading, rows_start) {
+                (true, Some(start)) => match hid.transact(&[0x02, 0x03, 0x00]) {
+                    Ok(reply) if reply[0] == 0x02 => Some(parse_matrix(&reply, start, cfg.rows, cfg.cols)),
                     _ => None, // not connected, or firmware without matrix access
-                }
-            } else {
-                None
+                },
+                _ => None,
             };
+            if pressed.is_none() {
+                rows_start = None; // re-detect after a reconnect
+            }
             if pressed.is_none() && preview.is_none() {
                 if shown.take().is_some() {
                     hide(&app);
@@ -254,11 +272,19 @@ pub fn spawn_poller(app: AppHandle) {
                 mask = (1 << layer) | 1;
             }
             let layer = highest(mask);
-            #[cfg(debug_assertions)]
-            if debug_last != Some((mask, pressed.len())) {
-                eprintln!("[overlay] layer {layer} (mask {mask:#06b}) pressed {pressed:?}");
-                debug_last = Some((mask, pressed.len()));
+            if last_seen.map(|(m, _)| m) != Some(mask) {
+                let prev = last_seen.map(|(m, _)| highest(m)).unwrap_or(0);
+                eprintln!(
+                    "[overlay] layer {prev} → {layer} (mask {mask:#06b}); layer {prev} was active for {} ms",
+                    layer_since.elapsed().as_millis()
+                );
+                layer_since = Instant::now();
             }
+            #[cfg(debug_assertions)]
+            if last_seen != Some((mask, pressed.len())) {
+                eprintln!("[overlay] layer {layer} (mask {mask:#06b}) pressed {pressed:?}");
+            }
+            last_seen = Some((mask, pressed.len()));
             let ev = LayerEvent { layer, mask, pressed: pressed.iter().map(|&(r, c)| [r, c]).collect() };
 
             if layer == 0 {
@@ -295,8 +321,15 @@ pub fn spawn_poller(app: AppHandle) {
 #[tauri::command]
 pub fn overlay_configure(app: AppHandle, state: tauri::State<'_, OverlayState>, config: OverlayConfig) {
     let enabled = config.enabled;
-    #[cfg(debug_assertions)]
-    eprintln!("[overlay] configured: enabled={enabled} layers={} matrix={}x{} size={}x{}", config.keymap.len(), config.rows, config.cols, config.width, config.height);
+    eprintln!(
+        "[overlay] configured: enabled={enabled} delay={}ms layers={} matrix={}x{} size={}x{}",
+        config.delay_ms,
+        config.keymap.len(),
+        config.rows,
+        config.cols,
+        config.width,
+        config.height
+    );
     *state.config.lock().unwrap() = config.clone();
     #[cfg(target_os = "macos")]
     macos::set_app_nap_disabled(enabled);
@@ -416,8 +449,21 @@ mod tests {
     }
 
     #[test]
-    fn parses_switch_matrix() {
+    fn parses_switch_matrix_with_offset_byte() {
+        // Current QMK (as on the Corne v4): [cmd, id, offset, rows…]
+        let reply = [0x02, 0x03, 0x00, 0b0000_0001, 0, 0, 0b0100_0000, 0, 0, 0, 0b0000_1000];
+        assert_eq!(parse_matrix(&reply, 3, 8, 7), vec![(0, 0), (3, 6), (7, 3)]);
+    }
+
+    #[test]
+    fn parses_switch_matrix_without_offset_byte() {
         let reply = [0x02, 0x03, 0b0000_0001, 0, 0, 0b0100_0000, 0, 0, 0, 0b0000_1000];
-        assert_eq!(parse_matrix(&reply, 8, 7), vec![(0, 0), (3, 6), (7, 3)]);
+        assert_eq!(parse_matrix(&reply, 2, 8, 7), vec![(0, 0), (3, 6), (7, 3)]);
+    }
+
+    #[test]
+    fn detects_reply_layout_from_offset_echo() {
+        assert_eq!(matrix_rows_start(&[0x02, 0x03, 0x01, 0, 0], 1), 3);
+        assert_eq!(matrix_rows_start(&[0x02, 0x03, 0x00, 0, 0], 1), 2);
     }
 }

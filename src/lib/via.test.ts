@@ -17,6 +17,25 @@ describe("via buffers", () => {
     expect(m.flat().filter(Boolean)).toHaveLength(3);
   });
 
+  it("reads matrix replies with and without QMK's offset byte", async () => {
+    // Left thumb Lower key on a Corne v4 is matrix row 3, col 4.
+    const fake = (withOffset: boolean): Transport => ({
+      send: async (d) => {
+        const r = new Array(32).fill(0);
+        r[0] = d[0];
+        r[1] = d[1];
+        const start = withOffset ? 3 : 2;
+        if (withOffset) r[2] = d[2];
+        r[start + 3] = 1 << 4;
+        return r;
+      },
+    });
+    for (const withOffset of [true, false]) {
+      const m = await new Via(fake(withOffset)).matrixState();
+      expect(m.flatMap((row, r) => row.flatMap((on, c) => (on ? [`${r},${c}`] : [])))).toEqual(["3,4"]);
+    }
+  });
+
   it("reads the keymap in 28-byte chunks", async () => {
     const memory = Array.from({ length: 6 * 8 * 7 * 2 }, (_, i) => i & 0xff);
     const sent: number[][] = [];

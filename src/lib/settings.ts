@@ -46,4 +46,19 @@ export interface OverlaySettings {
   opacity: number;
 }
 
-export const OVERLAY_DEFAULTS: OverlaySettings = { enabled: true, delayMs: 300, position: "bottom", size: "m", opacity: 0.55 };
+export const OVERLAY_DEFAULTS: OverlaySettings = { enabled: true, delayMs: 2000, position: "bottom", size: "m", opacity: 0.55 };
+
+/**
+ * Overlay settings with migrations: v1 defaulted to a 300 ms delay, which popped the overlay up
+ * while typing on a layer; v2 waits for a deliberate 2 s hold.
+ */
+export function loadOverlaySettings(): OverlaySettings {
+  const saved = loadJson<OverlaySettings & { version?: number }>("overlay", { ...OVERLAY_DEFAULTS, version: 2 });
+  if ((saved.version ?? 1) < 2 && saved.delayMs === 300) saved.delayMs = OVERLAY_DEFAULTS.delayMs;
+  const { version: _version, ...settings } = saved;
+  return settings;
+}
+
+export function saveOverlaySettings(settings: OverlaySettings) {
+  saveJson("overlay", { ...settings, version: 2 });
+}

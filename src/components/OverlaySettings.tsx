@@ -68,14 +68,14 @@ export function OverlaySettingsView() {
         <div className={`setting-group ${overlay.enabled ? "" : "disabled"}`}>
           <div className="setting-row">
             <div>
-              <strong>Appear after holding for {overlay.delayMs} ms</strong>
-              <p className="muted small">Quick layer taps while typing won't flash it. 0 shows it instantly.</p>
+              <strong>Appear after holding a layer for {(overlay.delayMs / 1000).toFixed(1)} s</strong>
+              <p className="muted small">Typing on a layer won't pop it up; it shows when you hold and wait. 0 shows it instantly.</p>
             </div>
             <input
               type="range"
               min={0}
-              max={1000}
-              step={50}
+              max={5000}
+              step={100}
               value={overlay.delayMs}
               onChange={(e) => set({ delayMs: Number(e.target.value) })}
             />
@@ -155,7 +155,7 @@ export function OverlaySettingsView() {
         </div>
         <p className="muted small">
           While the overlay is on, closing this window keeps Corne Studio running in the background.{" "}
-          {isMac ? "Click its Dock icon to bring the window back; quit with ⌘Q." : "Quit it from the taskbar."}
+          {isMac ? "Click its Dock icon to bring the window back; quit with ⌘Q." : "Launch it again to bring the window back."}
         </p>
       </section>
 
