@@ -1,0 +1,101 @@
+/* The overlay window is transparent; only the card is drawn. Sizes must match overlaySize(). */
+html,
+body,
+#root {
+  background: transparent !important;
+  overflow: hidden;
+}
+body {
+  margin: 0;
+}
+.ov-root {
+  box-sizing: border-box;
+  height: 100%;
+  padding: 24px;
+  pointer-events: none;
+}
+.ov-card {
+  /* --ov-opacity (0.3–1) comes from the "Opacity" setting */
+  --ov-opacity: 0.55;
+  box-sizing: border-box;
+  height: 100%;
+  padding: 18px;
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--panel) calc(var(--ov-opacity) * 100%), transparent);
+  border: 1px solid color-mix(in srgb, var(--text) 14%, transparent);
+  box-shadow: 0 14px 40px rgb(0 0 0 / calc(var(--ov-opacity) * 0.45));
+  display: flex;
+  flex-direction: column;
+  animation: ov-in 0.14s ease-out;
+}
+@keyframes ov-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+}
+.ov-head {
+  height: 42px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 6px 8px;
+}
+.ov-num {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #0b1020;
+  font-weight: 800;
+  font-size: 15px;
+}
+.ov-name {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.ov-board {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--muted);
+}
+.ov-card .board {
+  max-height: none;
+  flex: 1;
+}
+/* See-through keycaps: the desktop shows through, legends stay crisp. */
+.ov-card .cap .cap-base {
+  fill-opacity: calc(var(--ov-opacity) * 0.9);
+  stroke-opacity: 0.55;
+}
+.ov-card .cap .cap-top {
+  fill-opacity: calc(var(--ov-opacity) * 0.85);
+}
+.ov-card .cap.pressed .cap-top {
+  fill-opacity: 0.95;
+}
+/* A soft dark halo keeps legends readable over busy or bright backgrounds. */
+.ov-card .legend,
+.ov-card .legend-hold,
+.ov-name,
+.ov-board {
+  paint-order: stroke;
+  stroke: rgb(0 0 0 / 0.55);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+.ov-name,
+.ov-board {
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.6);
+}
+.ov-card .cap {
+  cursor: default;
+}
+.ov-card .cap.pressed .legend,
+.ov-card .cap.pressed .legend-hold {
+  stroke: none;
+}

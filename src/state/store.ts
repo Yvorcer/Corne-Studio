@@ -5,9 +5,10 @@ import { parseMacros, serializeMacros, type Macro } from "../lib/macros";
 import { CORNE_KEYS, LAYOUTS, type KeyGeom, type LayoutId } from "../lib/corneLayout";
 import { boardById, detectBoard, deviceKey, rankDevices, type BoardDef, type Detection } from "../lib/boards";
 import { ORIGINAL_BACKUP_ID, fitKeymap, makeProfile, parseProfile, type Profile } from "../lib/profiles";
+import { OVERLAY_DEFAULTS, loadJson, loadLayerNames, saveJson, saveLayerNames, type OverlaySettings } from "../lib/settings";
 
 export type Status = "disconnected" | "connecting" | "ready" | "error";
-export type View = "keymap" | "macros" | "tester" | "profiles";
+export type View = "keymap" | "macros" | "tester" | "profiles" | "overlay";
 
 interface Edit {
   layer: number;
@@ -49,6 +50,8 @@ interface State {
   undoStack: Edit[];
   redoStack: Edit[];
   toasts: Toast[];
+  layerNames: string[];
+  overlay: OverlaySettings;
 
   via: Via;
   connect: (path?: string) => Promise<void>;
@@ -69,6 +72,8 @@ interface State {
   snapshot: (name: string) => Profile;
   applyProfile: (p: Profile) => Promise<void>;
   toast: (kind: Toast["kind"], text: string) => void;
+  renameLayer: (layer: number, name: string) => void;
+  setOverlay: (patch: Partial<OverlaySettings>) => void;
 }
 
 let toastId = 0;
@@ -116,6 +121,8 @@ export const useStore = create<State>((set, get) => ({
   undoStack: [],
   redoStack: [],
   toasts: [],
+  layerNames: loadLayerNames(),
+  overlay: loadJson("overlay", OVERLAY_DEFAULTS),
   via: new Via(hidTransport, 8, 7),
 
   connect: async (path) => {
@@ -290,6 +297,19 @@ export const useStore = create<State>((set, get) => ({
     } finally {
       set({ busy: false });
     }
+  },
+
+  renameLayer: (layer, name) => {
+    const layerNames = [...get().layerNames];
+    layerNames[layer] = name.trim();
+    saveLayerNames(layerNames);
+    set({ layerNames });
+  },
+
+  setOverlay: (patch) => {
+    const overlay = { ...get().overlay, ...patch };
+    saveJson("overlay", overlay);
+    set({ overlay });
   },
 
   toast: (kind, text) => {

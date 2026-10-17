@@ -10,6 +10,8 @@ import { decode } from "./lib/keycodes";
 import { BOARDS, deviceKey, displayName, rankDevices } from "./lib/boards";
 import { LAYOUTS } from "./lib/corneLayout";
 import { isMac, primaryMod } from "./lib/platform";
+import { defaultLayerName } from "./lib/settings";
+import { OverlaySettingsView } from "./components/OverlaySettings";
 import appIcon from "./assets/app-icon.svg";
 import "./App.css";
 
@@ -18,17 +20,9 @@ const NAV: { id: View; label: string; icon: string }[] = [
   { id: "macros", label: "Macros", icon: "⚡" },
   { id: "tester", label: "Key tester", icon: "◉" },
   { id: "profiles", label: "Profiles", icon: "⧉" },
+  { id: "overlay", label: "Layer overlay", icon: "◫" },
 ];
 
-const LAYER_NAMES_KEY = "corne-studio.layer-names";
-
-function loadLayerNames(): string[] {
-  try {
-    return JSON.parse(localStorage.getItem(LAYER_NAMES_KEY) ?? "[]");
-  } catch {
-    return [];
-  }
-}
 
 export default function App() {
   const s = useStore();
@@ -94,6 +88,7 @@ export default function App() {
             {s.view === "macros" && <MacroEditor />}
             {s.view === "tester" && <KeyTester />}
             {s.view === "profiles" && <Profiles />}
+            {s.view === "overlay" && <OverlaySettingsView />}
           </>
         ) : (
           <ConnectScreen />
@@ -214,21 +209,12 @@ function ConnectScreen() {
 }
 
 function KeymapView() {
-  const { keymap, keys, layer, layerCount, selected, setLayer, select, undo, redo, undoStack, redoStack, reload, busy } = useStore();
-  const [names, setNames] = useState<string[]>(loadLayerNames);
+  const { keymap, keys, layer, layerCount, selected, setLayer, select, undo, redo, undoStack, redoStack, reload, busy, layerNames: names, renameLayer } =
+    useStore();
   const [editing, setEditing] = useState<number | null>(null);
   const [hover, setHover] = useState<{ row: number; col: number } | null>(null);
 
-  const rename = (l: number, name: string) => {
-    const next = [...names];
-    next[l] = name;
-    setNames(next);
-    try {
-      localStorage.setItem(LAYER_NAMES_KEY, JSON.stringify(next));
-    } catch {
-      /* non-essential */
-    }
-  };
+
 
   const hoverCode = hover ? keymap[layer]?.[hover.row]?.[hover.col] : undefined;
 
@@ -251,7 +237,7 @@ function KeymapView() {
                   autoFocus
                   defaultValue={names[l] ?? ""}
                   onBlur={(e) => {
-                    rename(l, e.target.value);
+                    renameLayer(l, e.target.value);
                     setEditing(null);
                   }}
                   onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
@@ -286,6 +272,3 @@ function KeymapView() {
   );
 }
 
-function defaultLayerName(l: number) {
-  return ["Base", "Lower", "Raise", "Adjust", "Layer 4", "Layer 5"][l] ?? `Layer ${l}`;
-}

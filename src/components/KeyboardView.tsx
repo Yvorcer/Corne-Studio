@@ -18,6 +18,8 @@ interface Props {
   selected?: { row: number; col: number } | null;
   pressed?: Set<string>;
   tested?: Set<string>;
+  /** Keys drawn dimmed (e.g. transparent keys showing what they fall through to) */
+  dimmed?: Set<string>;
   onSelect?: (k: { row: number; col: number }) => void;
   onHover?: (k: { row: number; col: number } | null) => void;
   /** Dim everything except tested/pressed (tester mode) */
@@ -31,6 +33,7 @@ export const KeyboardView = memo(function KeyboardView({
   selected,
   pressed,
   tested,
+  dimmed,
   onSelect,
   onHover,
   testerMode,
@@ -59,6 +62,7 @@ export const KeyboardView = memo(function KeyboardView({
             isSelected={selected?.row === k.row && selected?.col === k.col}
             isPressed={pressed?.has(id) ?? false}
             isTested={tested?.has(id) ?? false}
+            isDimmed={dimmed?.has(id) ?? false}
             testerMode={testerMode}
             onSelect={onSelect}
             onHover={onHover}
@@ -76,6 +80,7 @@ interface CapProps {
   isSelected: boolean;
   isPressed: boolean;
   isTested: boolean;
+  isDimmed: boolean;
   testerMode?: boolean;
   onSelect?: Props["onSelect"];
   onHover?: Props["onHover"];
@@ -87,7 +92,7 @@ function legendSize(label: string, w: number): number {
   return base * Math.min(1, w);
 }
 
-function Keycap({ k, d, layer, isSelected, isPressed, isTested, testerMode, onSelect, onHover }: CapProps) {
+function Keycap({ k, d, layer, isSelected, isPressed, isTested, isDimmed, testerMode, onSelect, onHover }: CapProps) {
   const x = k.x * U + GAP / 2;
   const y = k.y * U + GAP / 2;
   const w = k.w * U - GAP;
@@ -105,6 +110,7 @@ function Keycap({ k, d, layer, isSelected, isPressed, isTested, testerMode, onSe
     testerMode && isTested && "tested",
     isTrns && "trns",
     isNone && "none",
+    isDimmed && "dim",
     d?.kind === "macro" && "macro",
   ]
     .filter(Boolean)

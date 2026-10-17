@@ -120,6 +120,8 @@ input.search { min-width: 260px; }
 .cap:hover .cap-base { stroke: var(--layer); }
 .cap.selected .cap-base { stroke: var(--layer); stroke-width: 2.5; filter: drop-shadow(0 0 6px var(--layer)); }
 .cap.trns .legend, .cap.none .legend { fill: var(--muted); opacity: 0.6; }
+.cap.dim .legend { opacity: 0.42; }
+.cap.dim .cap-top { opacity: 0.75; }
 .cap.macro .cap-top { fill: color-mix(in srgb, #f6e05e 18%, var(--cap-top)); }
 .cap.pressed .cap-top { fill: var(--layer); }
 .cap.pressed .legend { fill: #0b1020; }
@@ -237,3 +239,23 @@ input.search { min-width: 260px; }
 .toast { padding: 10px 14px; border-radius: var(--radius); background: var(--panel); border: 1px solid var(--line); box-shadow: 0 6px 24px rgb(0 0 0 / 0.3); max-width: 380px; }
 .toast.error { border-color: var(--danger); }
 .toast.success { border-color: var(--ok); }
+
+/* ---------- settings (layer overlay) */
+.settings { display: flex; flex-direction: column; gap: 16px; max-width: 760px; }
+.settings header p { line-height: 1.5; max-width: 640px; }
+.setting-card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 6px 18px 14px; display: flex; flex-direction: column; }
+.setting-card > p { margin-top: 8px; }
+.setting-row { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.setting-row:last-child { border-bottom: none; }
+.setting-row p { margin-top: 2px; }
+.setting-group.disabled { opacity: 0.45; pointer-events: none; }
+.setting-row input[type="range"] { width: 220px; accent-color: var(--primary); }
+.segmented { display: inline-flex; background: var(--panel-2); border: 1px solid var(--line); border-radius: 9px; padding: 2px; }
+.segmented button { border: none; background: transparent; padding: 5px 14px; border-radius: 7px; color: var(--muted); }
+.segmented button.on { background: var(--primary); color: var(--primary-ink); font-weight: 600; }
+.switch { width: 44px; height: 26px; padding: 0; border-radius: 99px; position: relative; flex-shrink: 0; background: var(--panel-2); }
+.switch span { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--muted); transition: transform 0.15s, background 0.15s; }
+.switch.on { background: var(--primary); border-color: transparent; }
+.switch.on span { transform: translateX(18px); background: #fff; }
+.preview-chip { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px 5px 5px; }
+.preview-chip span { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 6px; background: var(--accent); color: #0b1020; font-weight: 700; font-size: 12px; }

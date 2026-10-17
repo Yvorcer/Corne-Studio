@@ -36,6 +36,15 @@ Six layers with their own colours (double-click a tab to rename it). Click any k
 
 <img src="docs/images/keymap.png" alt="Corne Studio keymap editor" />
 
+### Layer overlay
+Hold a layer key (Lower, Raise, any `MO`/`LT`/`TT`) and a see-through heads-up display of that layer appears over whatever you're doing, even full-screen apps. Let go and it's gone. It never takes focus, so your typing keeps going to the app you're in. Lower + Upper shows Adjust, keys pressed right now are highlighted, and transparent keys show what they fall through to.
+
+<img src="docs/images/overlay.png" alt="Layer overlay over another app" />
+
+It only appears after you've held the layer for a moment (300 ms by default), so quick layer taps while typing don't make it flash. Delay, opacity, size and position are adjustable under **Layer overlay**, along with an **Open at login** switch. While the overlay is on, closing the window keeps Corne Studio running in the background: click the Dock icon to bring it back, or quit with ⌘Q.
+
+How it works: layer keys send nothing to the computer, so while the overlay is on, the app reads the keyboard's switch matrix about 40 times a second in a background thread (`src-tauri/src/overlay.rs`). It then resolves the active layer the way QMK does: the highest active layer that isn't transparent, plus tri-layer. Toggled layers (`TG`/`TO`/`DF`) aren't visible in the matrix, so they don't trigger it.
+
 ### Mod-tap, layer-tap and shortcuts
 Builders for keys that do two things: tap for `A`, hold for `⌃` (home-row mods); tap for space, hold for layer 1; one key that sends `⌘C`; one-shot modifiers; or any raw 16-bit QMK keycode.
 
@@ -218,6 +227,8 @@ Regenerate the app icon (drawn from the real layout geometry) with `npm run icon
 | `src-tauri/src/profiles.rs` | Profile storage in the OS app-data folder (`~/Library/Application Support/com.yvorcer.cornestudio` on macOS, `%APPDATA%\com.yvorcer.cornestudio` on Windows, `~/.local/share/com.yvorcer.cornestudio` on Linux) |
 | `src/lib/boards.ts` | Board registry: USB IDs, matrix sizes, layouts, revision detection |
 | `src/lib/via.ts` | VIA protocol client: keymap, macros, matrix state |
+| `src-tauri/src/overlay.rs` | Layer overlay: background matrix poller, QMK layer resolution, floating click-through window |
+| `src/overlay/` · `src/lib/overlaySync.ts` | Overlay window UI, and syncing the keymap and settings to the poller |
 | `src/lib/keycodes.ts` | QMK keycode table, encode/decode for MT/LT/MO/TG/OSM/… |
 | `src/lib/corneLayout.ts` | Physical geometry of the four Corne layouts (46/40/42/36 keys). Tweak `THUMBS` / `HALF_GAP` here |
 | `src/lib/platform.ts` | OS detection for shortcuts and modifier legends |

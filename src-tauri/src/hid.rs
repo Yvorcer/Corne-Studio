@@ -98,40 +98,56 @@ pub async fn hid_disconnect(state: tauri::State<'_, HidState>) -> Result<(), Str
     Ok(())
 }
 
+impl HidState {
+    /// Send one VIA request and return its 32-byte reply. Used by the UI (`hid_send`) and the
+    /// overlay poller; the device mutex keeps their requests from interleaving.
+    pub fn transact(&self, data: &[u8]) -> Result<[u8; REPORT_LEN], String> {
+        if data.is_empty() || data.len() > REPORT_LEN {
+            return Err(format!("report must be 1..={REPORT_LEN} bytes"));
+        }
+        let mut guard = self.device.lock().map_err(|e| e.to_string())?;
+        let (dev, _) = guard.as_ref().ok_or("Keyboard not connected")?;
+
+        // Drain any stale input reports so replies line up with requests.
+        let mut scratch = [0u8; REPORT_LEN];
+        while let Ok(n) = dev.read_timeout(&mut scratch, 0) {
+            if n == 0 {
+                break;
+            }
+        }
+
+        // hidapi expects a leading report-ID byte (0 = no report IDs).
+        let mut out = [0u8; REPORT_LEN + 1];
+        out[1..=data.len()].copy_from_slice(data);
+        if let Err(e) = dev.write(&out) {
+            *guard = None;
+            return Err(format!("Write failed: {e}"));
+        }
+
+        // VIA echoes the command id (or 0xFF if unsupported). Skip replies meant for another
+        // client sharing the interface (e.g. a VIA/Remap browser tab).
+        let deadline = std::time::Instant::now() + Duration::from_millis(READ_TIMEOUT_MS as u64);
+        let mut buf = [0u8; REPORT_LEN];
+        loop {
+            let left = deadline.saturating_duration_since(std::time::Instant::now()).as_millis() as i32;
+            match dev.read_timeout(&mut buf, left.max(1)) {
+                Ok(0) => return Err("Keyboard did not respond (timeout)".into()),
+                Ok(_) if buf[0] == data[0] || buf[0] == 0xFF => return Ok(buf),
+                Ok(_) if left <= 1 => return Err("Keyboard did not respond (timeout)".into()),
+                Ok(_) => continue,
+                Err(e) => {
+                    *guard = None;
+                    return Err(format!("Read failed: {e}"));
+                }
+            }
+        }
+    }
+}
+
 /// Send one 32-byte report and return the 32-byte reply.
 #[tauri::command]
 pub async fn hid_send(state: tauri::State<'_, HidState>, data: Vec<u8>) -> Result<Vec<u8>, String> {
-    if data.is_empty() || data.len() > REPORT_LEN {
-        return Err(format!("report must be 1..={REPORT_LEN} bytes"));
-    }
-    let mut guard = state.device.lock().map_err(|e| e.to_string())?;
-    let (dev, _) = guard.as_ref().ok_or("Keyboard not connected")?;
-
-    // Drain any stale input reports so replies line up with requests.
-    let mut scratch = [0u8; REPORT_LEN];
-    while let Ok(n) = dev.read_timeout(&mut scratch, 0) {
-        if n == 0 {
-            break;
-        }
-    }
-
-    // hidapi expects a leading report-ID byte (0 = no report IDs).
-    let mut out = [0u8; REPORT_LEN + 1];
-    out[1..=data.len()].copy_from_slice(&data);
-    if let Err(e) = dev.write(&out) {
-        *guard = None;
-        return Err(format!("Write failed: {e}"));
-    }
-
-    let mut buf = [0u8; REPORT_LEN];
-    match dev.read_timeout(&mut buf, READ_TIMEOUT_MS) {
-        Ok(0) => Err("Keyboard did not respond (timeout)".into()),
-        Ok(_) => Ok(buf.to_vec()),
-        Err(e) => {
-            *guard = None;
-            Err(format!("Read failed: {e}"))
-        }
-    }
+    state.transact(&data).map(|r| r.to_vec())
 }
 
 /// Poll for plug/unplug of the raw-HID interface and notify the frontend.
