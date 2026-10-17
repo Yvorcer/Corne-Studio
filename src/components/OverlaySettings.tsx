@@ -146,7 +146,7 @@ export function OverlaySettingsView() {
         <div className="setting-row">
           <div>
             <strong>Open at login</strong>
-            <p className="muted small">Starts Corne Studio in the background so the overlay is always available.</p>
+            <p className="muted small">Starts Corne Studio in the menu bar, without opening this window, so the overlay is always available.</p>
           </div>
           {atLogin === null ? (
             <span className="muted small">Unavailable</span>
@@ -155,8 +155,8 @@ export function OverlaySettingsView() {
           )}
         </div>
         <p className="muted small">
-          While the overlay is on, closing this window keeps Corne Studio running in the background.{" "}
-          {isMac ? "Click its Dock icon to bring the window back; quit with ⌘Q." : "Launch it again to bring the window back."}
+          While the overlay is on, closing this window keeps Corne Studio running in the menu bar
+          {isMac ? " (no Dock icon)" : ""}. Open the window or quit from its menu-bar icon.
         </p>
       </section>
 

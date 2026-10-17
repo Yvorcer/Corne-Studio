@@ -15,7 +15,7 @@
     "preview": "vite preview",
     "tauri": "node scripts/tauri.mjs",
     "test": "vitest run",
-    "icon": "node --experimental-strip-types --no-warnings scripts/make-icon.ts src-tauri/app-icon.svg src-tauri/app-icon.png && npm run tauri icon src-tauri/app-icon.png && rm -rf src-tauri/icons/android src-tauri/icons/ios src-tauri/icons/icon.ico src-tauri/icons/Square*Logo.png src-tauri/icons/StoreLogo.png && cp src-tauri/app-icon.svg src/assets/app-icon.svg"
+    "icon": "node --experimental-strip-types --no-warnings scripts/make-icon.ts src-tauri/app-icon.svg src-tauri/app-icon.png && npm run tauri icon src-tauri/app-icon.png && rm -rf src-tauri/icons/android src-tauri/icons/ios src-tauri/icons/icon.ico src-tauri/icons/Square*Logo.png src-tauri/icons/StoreLogo.png && cp src-tauri/app-icon.svg src/assets/app-icon.svg && node --experimental-strip-types --no-warnings scripts/make-tray-icon.ts src-tauri/icons/tray-template.png"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

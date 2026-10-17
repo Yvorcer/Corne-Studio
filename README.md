@@ -40,7 +40,7 @@ Hold a layer key (Lower, Raise, any `MO`/`LT`/`TT`) and a frosted-glass heads-up
 
 <img src="docs/images/overlay.png" alt="Layer overlay over another app" />
 
-It appears once you've held a layer for 1 second (adjustable), so typing on a layer doesn't make it pop up; hold and wait when you want to look. On macOS the panel blurs whatever is behind it, using the system HUD material. Delay, background tint, size and position are adjustable under **Layer overlay**, along with an **Open at login** switch. While the overlay is on, closing the window keeps Corne Studio running in the background: click the Dock icon to bring it back, or quit with ⌘Q.
+It appears once you've held a layer for 1 second (adjustable), so typing on a layer doesn't make it pop up; hold and wait when you want to look. On macOS the panel blurs whatever is behind it, using the system HUD material. Delay, background tint, size and position are adjustable under **Layer overlay**, along with an **Open at login** switch. Corne Studio works as a menu-bar utility: it opens at login without a window, and closing the window (with the overlay on) leaves only the small keyboard icon in the menu bar, with no Dock icon. Use that icon to open the editor, switch the overlay on or off, or quit.
 
 How it works: layer keys send nothing to the computer, so while the overlay is on, the app reads the keyboard's switch matrix about 40 times a second in a background thread (`src-tauri/src/overlay.rs`). It then resolves the active layer the way QMK does: the highest active layer that isn't transparent, plus tri-layer. Toggled layers (`TG`/`TO`/`DF`) aren't visible in the matrix, so they don't trigger it.
 

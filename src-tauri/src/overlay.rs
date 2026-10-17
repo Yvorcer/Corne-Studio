@@ -371,6 +371,14 @@ pub fn spawn_poller(app: AppHandle) {
 
 // ------------------------------------------------------------------------- commands
 
+/// Turn the overlay on/off from the menu-bar icon; the app's settings follow via an event.
+pub fn set_enabled(app: &AppHandle, enabled: bool) {
+    app.state::<OverlayState>().config.lock().unwrap().enabled = enabled;
+    #[cfg(target_os = "macos")]
+    macos::set_app_nap_disabled(enabled);
+    let _ = app.emit_to("main", "overlay-toggled", enabled);
+}
+
 #[tauri::command]
 pub fn overlay_configure(app: AppHandle, state: tauri::State<'_, OverlayState>, config: OverlayConfig) {
     let enabled = config.enabled;
@@ -387,6 +395,9 @@ pub fn overlay_configure(app: AppHandle, state: tauri::State<'_, OverlayState>, 
     #[cfg(target_os = "macos")]
     macos::set_app_nap_disabled(enabled);
     let _ = app.emit_to(LABEL, "overlay-config", &config);
+    if let Some(tray) = app.try_state::<crate::tray::TrayState>() {
+        tray.set_overlay_checked(enabled);
+    }
     // Size or position changed while it's on screen (e.g. dragging the size setting): follow.
     if let Some(win) = app.get_webview_window(LABEL) {
         if win.is_visible().unwrap_or(false) {

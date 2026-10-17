@@ -5,6 +5,8 @@ import { OverlayApp } from "./overlay/OverlayApp";
 import { setModStyle } from "./lib/keycodes";
 import { PLATFORM } from "./lib/platform";
 import { startOverlaySync } from "./lib/overlaySync";
+import { listen } from "@tauri-apps/api/event";
+import { useStore } from "./state/store";
 
 setModStyle(PLATFORM);
 
@@ -21,4 +23,6 @@ if (isOverlay) {
     </React.StrictMode>,
   );
   startOverlaySync();
+  // "Layer overlay" toggled from the menu-bar icon: keep the setting in sync.
+  listen<boolean>("overlay-toggled", (e) => useStore.getState().setOverlay({ enabled: e.payload }));
 }
