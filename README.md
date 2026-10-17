@@ -36,7 +36,7 @@ Six layers with their own colours (double-click a tab to rename it). Click any k
 <img src="docs/images/keymap.png" alt="Corne Studio keymap editor" />
 
 ### Layer overlay
-Hold a layer key (Lower, Raise, any `MO`/`LT`/`TT`) and a frosted-glass heads-up display of that layer appears over whatever you're doing, even full-screen apps. Let go and it's gone. It never takes focus, so your typing keeps going to the app you're in. Lower + Upper shows Adjust, keys pressed right now are highlighted, and transparent keys show what they fall through to.
+Hold a layer key (Lower, Raise, any `MO`/`LT`/`TT`) and a frosted-glass heads-up display of that layer appears over whatever you're doing, even full-screen apps. Let go and it's gone, or press Esc to hide it until you let go. The Esc key on your base layer works even when that key is something else on the layer you're holding. It never takes focus, so your typing keeps going to the app you're in. Lower + Upper shows Adjust, keys pressed right now are highlighted, and transparent keys show what they fall through to.
 
 <img src="docs/images/overlay.png" alt="Layer overlay over another app" />
 

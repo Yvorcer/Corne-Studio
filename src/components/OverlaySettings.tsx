@@ -52,7 +52,8 @@ export function OverlaySettingsView() {
         <h2>Layer overlay</h2>
         <p className="muted">
           Hold a layer key on your Corne and a heads-up display of that layer appears on screen, over any app (even full-screen
-          ones). Let go and it disappears. It never takes focus, so you keep typing where you were.
+          ones). Let go and it disappears, or press Esc to hide it until you let go. It never takes focus, so you keep typing
+          where you were.
         </p>
       </header>
 

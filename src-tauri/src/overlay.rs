@@ -122,6 +122,29 @@ pub fn active_layers(keymap: &[Vec<Vec<u16>>], pressed: &[(usize, usize)]) -> u3
     active
 }
 
+/// Keys that act as Escape: KC_ESC, QK_GESC (Grave Escape) and mod-/layer-taps that tap Esc.
+fn is_escape(code: u16) -> bool {
+    const KC_ESC: u16 = 0x0029;
+    const QK_GESC: u16 = 0x7C16;
+    match code {
+        KC_ESC | QK_GESC => true,
+        0x2000..=0x4FFF => code & 0xFF == KC_ESC, // MT(mods, KC_ESC) / LT(layer, KC_ESC)
+        _ => false,
+    }
+}
+
+/// Did one of the newly pressed keys mean "Escape"? A key counts if it's Escape on the layer
+/// being shown, or on the base layer: Esc is often something else on other layers (e.g. Ctrl
+/// on the Corne's Lower layer), but your fingers still know where it is.
+pub fn escape_pressed(keymap: &[Vec<Vec<u16>>], mask: u32, newly_pressed: &[(usize, usize)]) -> bool {
+    let layers = keymap.len().min(32);
+    let at = |l: usize, r: usize, c: usize| keymap.get(l).and_then(|k| k.get(r)).and_then(|row| row.get(c)).copied().unwrap_or(0);
+    newly_pressed.iter().any(|&(r, c)| {
+        let active = (0..layers).rev().filter(|&l| mask & (1 << l) != 0).map(|l| at(l, r, c)).find(|&k| k != KC_TRNS).unwrap_or(0);
+        is_escape(active) || is_escape(at(0, r, c))
+    })
+}
+
 fn highest(mask: u32) -> u8 {
     31 - mask.leading_zeros() as u8
 }
@@ -227,6 +250,9 @@ fn hide(app: &AppHandle) {
 pub fn spawn_poller(app: AppHandle) {
     thread::spawn(move || {
         let mut shown: Option<LayerEvent> = None;
+        // Esc pressed while a layer is held: stay hidden until every layer key is released.
+        let mut dismissed = false;
+        let mut prev_pressed: Vec<(usize, usize)> = Vec::new();
         // Row-data position in matrix replies; detected per connection (see matrix_rows_start).
         let mut rows_start: Option<usize> = None;
         let mut candidate: Option<(u8, Instant)> = None;
@@ -298,12 +324,27 @@ pub fn spawn_poller(app: AppHandle) {
             }
             last_seen = Some((mask, pressed.len()));
             let ev = LayerEvent { layer, mask, pressed: pressed.iter().map(|&(r, c)| [r, c]).collect() };
+            let newly: Vec<(usize, usize)> = pressed.iter().copied().filter(|k| !prev_pressed.contains(k)).collect();
+            prev_pressed = pressed.clone();
+
+            if layer != 0 && !dismissed && escape_pressed(&cfg.keymap, mask, &newly) {
+                dismissed = true;
+                candidate = None;
+                *state.preview.lock().unwrap() = None;
+                if shown.take().is_some() {
+                    hide(&app);
+                }
+                eprintln!("[overlay] dismissed with Esc");
+            }
 
             if layer == 0 {
+                dismissed = false;
                 candidate = None;
                 if shown.take().is_some() {
                     hide(&app);
                 }
+            } else if dismissed {
+                // hidden until the layer keys are released
             } else if shown.is_some() {
                 // Already visible: follow layer changes and key presses immediately.
                 if shown.as_ref() != Some(&ev) {
@@ -458,6 +499,26 @@ mod tests {
     fn ignores_layers_the_board_doesnt_have() {
         let k = km(&[[[0x5225, 0], [0; 2]]]);
         assert_eq!(active_layers(&k, &[(0, 0)]), 0b1);
+    }
+
+    #[test]
+    fn escape_on_the_base_layer_dismisses_from_any_layer() {
+        // Corne v4 default: base (1,0) is Grave Escape, Lower has Ctrl there; (1,1) is A / nothing.
+        let mut k = vec![vec![vec![0u16; 2]; 2]; 2];
+        k[0][1] = vec![0x7C16, 0x0004];
+        k[1][1] = vec![0x00E0, 0x0000];
+        assert!(escape_pressed(&k, 0b11, &[(1, 0)]));
+        assert!(!escape_pressed(&k, 0b11, &[(1, 1)]));
+        assert!(!escape_pressed(&k, 0b11, &[]));
+    }
+
+    #[test]
+    fn escape_on_the_shown_layer_and_esc_taps_count() {
+        let mut k = vec![vec![vec![0u16; 3]; 1]; 2];
+        k[1][0] = vec![0x0029, 0x2129, 0x0005]; // KC_ESC, MT(Ctrl, Esc), B
+        assert!(escape_pressed(&k, 0b11, &[(0, 0)]));
+        assert!(escape_pressed(&k, 0b11, &[(0, 1)]));
+        assert!(!escape_pressed(&k, 0b11, &[(0, 2)]));
     }
 
     #[test]
