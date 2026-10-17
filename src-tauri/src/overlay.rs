@@ -8,6 +8,8 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
+use tauri::utils::config::WindowEffectsConfig;
+use tauri::window::{Effect, EffectState};
 use tauri::{AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 
 use crate::hid::HidState;
@@ -152,6 +154,16 @@ pub fn create_window(app: &AppHandle) -> tauri::Result<()> {
         .title("Corne Studio layer overlay")
         .inner_size(820.0, 340.0)
         .transparent(true)
+        // Native frosted blur of whatever is behind the panel (macOS HUD material, like the
+        // volume pop-up). Kept "active" because the overlay never becomes the key window.
+        // Corner radius matches .ov-card in src/overlay/overlay.css. Ignored on Linux.
+        .effects(WindowEffectsConfig {
+            effects: vec![Effect::HudWindow],
+            state: Some(EffectState::Active),
+            radius: Some(22.0),
+            color: None,
+            interactive: false,
+        })
         .decorations(false)
         .shadow(false)
         .resizable(false)

@@ -1,37 +1,53 @@
-/* The overlay window is transparent; only the card is drawn. Sizes must match overlaySize(). */
+/* The overlay window is exactly the card. macOS blurs what's behind it (HUD material, see
+   create_window in src-tauri/src/overlay.rs); the card adds a dark tint and the keys.
+   Sizes must match overlaySize() in src/lib/overlaySync.ts. */
 html,
 body,
 #root {
   background: transparent !important;
   overflow: hidden;
+  height: 100%;
 }
 body {
   margin: 0;
 }
+
+/* Always dark, like system HUDs, so legends read the same in light and dark mode. */
 .ov-root {
+  --panel: #12141a;
+  --panel-2: #1c2029;
+  --line: #262b36;
+  --text: #f1f3f8;
+  --muted: #a3abbe;
+  --cap-top: #2a2f3b;
+  --cap-bottom: #20242e;
+  --cap-base: #14171d;
+  --cap-edge: #4a5162;
+  --legend: #f4f6fb;
+  color-scheme: dark;
   box-sizing: border-box;
   height: 100%;
-  padding: 24px;
   pointer-events: none;
+  color: var(--text);
 }
+
 .ov-card {
-  /* --ov-opacity (0.3–1) comes from the "Opacity" setting */
-  --ov-opacity: 0.55;
+  /* --ov-opacity (0.1–1) is the "Opacity" setting: strength of the tint over the blur */
+  --ov-opacity: 0.35;
   box-sizing: border-box;
   height: 100%;
   padding: 18px;
   border-radius: 22px;
-  background: color-mix(in srgb, var(--panel) calc(var(--ov-opacity) * 100%), transparent);
-  border: 1px solid color-mix(in srgb, var(--text) 14%, transparent);
-  box-shadow: 0 14px 40px rgb(0 0 0 / calc(var(--ov-opacity) * 0.45));
+  background: color-mix(in srgb, #0b0d12 calc(var(--ov-opacity) * 100%), transparent);
+  /* hairline edge like macOS HUD panels */
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
   display: flex;
   flex-direction: column;
-  animation: ov-in 0.14s ease-out;
+  animation: ov-in 0.12s ease-out;
 }
 @keyframes ov-in {
   from {
     opacity: 0;
-    transform: translateY(8px) scale(0.985);
   }
 }
 .ov-head {
@@ -67,33 +83,33 @@ body {
   max-height: none;
   flex: 1;
 }
-/* See-through keycaps: the desktop shows through, legends stay crisp. */
+.ov-card .cap {
+  cursor: default;
+}
+/* Translucent keycaps over the blur; legends stay crisp. */
 .ov-card .cap .cap-base {
-  fill-opacity: calc(var(--ov-opacity) * 0.9);
-  stroke-opacity: 0.55;
+  fill-opacity: 0.55;
+  stroke-opacity: 0.6;
 }
 .ov-card .cap .cap-top {
-  fill-opacity: calc(var(--ov-opacity) * 0.85);
+  fill-opacity: 0.5;
 }
 .ov-card .cap.pressed .cap-top {
   fill-opacity: 0.95;
 }
-/* A soft dark halo keeps legends readable over busy or bright backgrounds. */
+/* A soft dark halo keeps legends readable over bright spots in the blur. */
 .ov-card .legend,
 .ov-card .legend-hold,
 .ov-name,
 .ov-board {
   paint-order: stroke;
-  stroke: rgb(0 0 0 / 0.55);
-  stroke-width: 3px;
+  stroke: rgb(0 0 0 / 0.45);
+  stroke-width: 2.5px;
   stroke-linejoin: round;
 }
 .ov-name,
 .ov-board {
-  text-shadow: 0 1px 3px rgb(0 0 0 / 0.6);
-}
-.ov-card .cap {
-  cursor: default;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.5);
 }
 .ov-card .cap.pressed .legend,
 .ov-card .cap.pressed .legend-hold {

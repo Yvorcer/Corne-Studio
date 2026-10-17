@@ -11,7 +11,7 @@ export interface OverlayView {
   layoutId: LayoutId;
   layerNames: string[];
   boardName: string;
-  /** background opacity, 0.3–1 */
+  /** tint over the blurred background, 0.1–1 */
   opacity: number;
 }
 
@@ -27,9 +27,10 @@ export interface OverlayConfig {
   view: OverlayView;
 }
 
-// Must match src/overlay/overlay.css (window margin, card padding, header).
+// Must match src/overlay/overlay.css (card padding, header). The window is exactly the card:
+// macOS draws the blur behind the whole window, rounded to the card's corner radius.
 const WIDTH = { s: 640, m: 860, l: 1100 } as const;
-const MARGIN = 24;
+const MARGIN = 0;
 const CARD_PAD = 18;
 const HEADER = 42;
 const KEYBOARD_PAD = 0.35; // same as KeyboardView

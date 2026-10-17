@@ -36,11 +36,11 @@ Six layers with their own colours (double-click a tab to rename it). Click any k
 <img src="docs/images/keymap.png" alt="Corne Studio keymap editor" />
 
 ### Layer overlay
-Hold a layer key (Lower, Raise, any `MO`/`LT`/`TT`) and a see-through heads-up display of that layer appears over whatever you're doing, even full-screen apps. Let go and it's gone. It never takes focus, so your typing keeps going to the app you're in. Lower + Upper shows Adjust, keys pressed right now are highlighted, and transparent keys show what they fall through to.
+Hold a layer key (Lower, Raise, any `MO`/`LT`/`TT`) and a frosted-glass heads-up display of that layer appears over whatever you're doing, even full-screen apps. Let go and it's gone. It never takes focus, so your typing keeps going to the app you're in. Lower + Upper shows Adjust, keys pressed right now are highlighted, and transparent keys show what they fall through to.
 
 <img src="docs/images/overlay.png" alt="Layer overlay over another app" />
 
-It appears once you've held a layer for 2 seconds (adjustable), so typing on a layer doesn't make it pop up; hold and wait when you want to look. Delay, opacity, size and position are adjustable under **Layer overlay**, along with an **Open at login** switch. While the overlay is on, closing the window keeps Corne Studio running in the background: click the Dock icon to bring it back, or quit with ⌘Q.
+It appears once you've held a layer for 1 second (adjustable), so typing on a layer doesn't make it pop up; hold and wait when you want to look. On macOS the panel blurs whatever is behind it, using the system HUD material. Delay, background tint, size and position are adjustable under **Layer overlay**, along with an **Open at login** switch. While the overlay is on, closing the window keeps Corne Studio running in the background: click the Dock icon to bring it back, or quit with ⌘Q.
 
 How it works: layer keys send nothing to the computer, so while the overlay is on, the app reads the keyboard's switch matrix about 40 times a second in a background thread (`src-tauri/src/overlay.rs`). It then resolves the active layer the way QMK does: the highest active layer that isn't transparent, plus tri-layer. Toggled layers (`TG`/`TO`/`DF`) aren't visible in the matrix, so they don't trigger it.
 

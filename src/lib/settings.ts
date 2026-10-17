@@ -42,23 +42,28 @@ export interface OverlaySettings {
   delayMs: number;
   position: "bottom" | "center" | "top";
   size: "s" | "m" | "l";
-  /** 0.3–1: how solid the overlay's background is (legends always stay fully readable) */
+  /** 0.1–1: strength of the dark tint over the blurred background */
   opacity: number;
 }
 
-export const OVERLAY_DEFAULTS: OverlaySettings = { enabled: true, delayMs: 2000, position: "bottom", size: "m", opacity: 0.55 };
+export const OVERLAY_DEFAULTS: OverlaySettings = { enabled: true, delayMs: 1000, position: "bottom", size: "m", opacity: 0.35 };
+
+const SETTINGS_VERSION = 3;
 
 /**
- * Overlay settings with migrations: v1 defaulted to a 300 ms delay, which popped the overlay up
- * while typing on a layer; v2 waits for a deliberate 2 s hold.
+ * Overlay settings, migrating earlier defaults the user never changed:
+ * v1 → 300 ms delay (popped up while typing), v2 → 2 s (too slow), v3 → 1 s.
+ * v3 also blurs the desktop natively, so the tint (opacity) can be lighter than v2's 55%.
  */
 export function loadOverlaySettings(): OverlaySettings {
-  const saved = loadJson<OverlaySettings & { version?: number }>("overlay", { ...OVERLAY_DEFAULTS, version: 2 });
-  if ((saved.version ?? 1) < 2 && saved.delayMs === 300) saved.delayMs = OVERLAY_DEFAULTS.delayMs;
+  const saved = loadJson<OverlaySettings & { version?: number }>("overlay", { ...OVERLAY_DEFAULTS, version: SETTINGS_VERSION });
+  const version = saved.version ?? 1;
+  if (version < SETTINGS_VERSION && (saved.delayMs === 300 || saved.delayMs === 2000)) saved.delayMs = OVERLAY_DEFAULTS.delayMs;
+  if (version < SETTINGS_VERSION && saved.opacity === 0.55) saved.opacity = OVERLAY_DEFAULTS.opacity;
   const { version: _version, ...settings } = saved;
   return settings;
 }
 
 export function saveOverlaySettings(settings: OverlaySettings) {
-  saveJson("overlay", { ...settings, version: 2 });
+  saveJson("overlay", { ...settings, version: SETTINGS_VERSION });
 }

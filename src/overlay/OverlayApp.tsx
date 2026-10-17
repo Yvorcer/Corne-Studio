@@ -73,7 +73,7 @@ export function OverlayApp() {
       <div
         className="ov-card"
         key={showId}
-        style={{ "--accent": layerColor(ev.layer), "--ov-opacity": config.view.opacity ?? 0.55 } as React.CSSProperties}
+        style={{ "--accent": layerColor(ev.layer), "--ov-opacity": config.view.opacity ?? 0.35 } as React.CSSProperties}
       >
         <div className="ov-head">
           <span className="ov-num">{ev.layer}</span>

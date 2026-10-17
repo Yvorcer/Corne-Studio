@@ -82,12 +82,12 @@ export function OverlaySettingsView() {
           </div>
           <div className="setting-row">
             <div>
-              <strong>Opacity {Math.round(overlay.opacity * 100)}%</strong>
-              <p className="muted small">Lower is more see-through. Key labels always stay readable.</p>
+              <strong>Background tint {Math.round(overlay.opacity * 100)}%</strong>
+              <p className="muted small">What's behind the overlay is blurred; a darker tint makes the labels stand out more.</p>
             </div>
             <input
               type="range"
-              min={0.3}
+              min={0.1}
               max={1}
               step={0.05}
               value={overlay.opacity}
