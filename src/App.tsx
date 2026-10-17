@@ -227,6 +227,8 @@ function KeymapView() {
     renameLayer,
     capturing,
     setCapturing,
+    swapping,
+    swapKeys,
   } = useStore();
   const [editing, setEditing] = useState<number | null>(null);
   const [hover, setHover] = useState<{ row: number; col: number } | null>(null);
@@ -283,19 +285,25 @@ function KeymapView() {
             setCapturing(true);
           }}
           capturing={capturing}
+          onSwap={swapKeys}
           onHover={setHover}
         />
         <div className="hover-info">
           {capturing && selected ? (
             <span className="capture-hint">
-              Type the key you want on key {selected.row},{selected.col}… <span className="muted">(click anywhere to cancel)</span>
+              Type the key you want, or press any key on your Corne (layer keys too)…{" "}
+              <span className="muted">(click anywhere to cancel)</span>
+            </span>
+          ) : swapping && selected ? (
+            <span className="capture-hint">
+              Click the key to swap with key {selected.row},{selected.col}… <span className="muted">(Esc to cancel)</span>
             </span>
           ) : hoverCode !== undefined ? (
             <>
               <code>{decode(hoverCode).name}</code> <span className="muted">· matrix {hover!.row},{hover!.col}</span>
             </>
           ) : (
-            <span className="muted">Changes are written to the keyboard instantly. Double-click a key, then type, to change it fast.</span>
+            <span className="muted">Changes are written to the keyboard instantly. Double-click a key and type to change it · drag a key onto another to swap.</span>
           )}
         </div>
       </div>

@@ -39,7 +39,8 @@ const TABS: { id: Tab; label: string }[] = [
 export const BASIC_KEYS = ALL_KEYS.filter((k) => k.code >= 0x04 && k.code <= 0xff);
 
 export function KeyPicker() {
-  const { selected, layer, keymap, layerCount, macroCount, assign, capturing: capture, setCapturing: setCapture } = useStore();
+  const { selected, layer, keymap, layerCount, macroCount, assign, capturing: capture, setCapturing: setCapture, swapping, setSwapping } =
+    useStore();
   const [tab, setTab] = useState<Tab>("basic");
   const [query, setQuery] = useState("");
 
@@ -62,7 +63,40 @@ export function KeyPicker() {
     };
     window.addEventListener("keydown", onKey, true);
     window.addEventListener("mousedown", onPointer, true);
+
+    // Corne keys the Mac never hears about (layer keys like Lower/Upper, macros, mod-taps) are
+    // read from the switch matrix: pressing one copies its function from the base layer.
+    // Plain keys (letters, numbers, …) still arrive as normal key presses above.
+    let alive = true;
+    let timer: number | undefined;
+    let held: Set<string> | null = null;
+    const poll = async () => {
+      try {
+        const matrix = await useStore.getState().via.matrixState();
+        if (!alive) return;
+        const now = new Set<string>();
+        matrix.forEach((row, r) => row.forEach((on, c) => on && now.add(`${r},${c}`)));
+        const fresh = held ? [...now].filter((k) => !held!.has(k)) : [];
+        held = now;
+        for (const key of fresh) {
+          const [r, c] = key.split(",").map(Number);
+          const code = useStore.getState().keymap[0]?.[r]?.[c];
+          if (code !== undefined && code > 0xff) {
+            assign(code);
+            setCapture(false);
+            return;
+          }
+        }
+      } catch {
+        return; // firmware without matrix access: typing still works
+      }
+      if (alive) timer = window.setTimeout(poll, 30);
+    };
+    poll();
+
     return () => {
+      alive = false;
+      clearTimeout(timer);
       window.removeEventListener("keydown", onKey, true);
       window.removeEventListener("mousedown", onPointer, true);
     };
@@ -138,6 +172,14 @@ export function KeyPicker() {
             title="Press any key on a keyboard to assign it (or double-click a key)"
           >
             {capture ? "Press a key…" : "⌨ Press to assign"}
+          </button>
+          <button
+            className={`chip ${swapping ? "chip-active" : ""}`}
+            disabled={disabled}
+            onClick={() => setSwapping(!swapping)}
+            title="Swap this key with another one (or drag one key onto another)"
+          >
+            {swapping ? "Click a key to swap with…" : "⇄ Swap"}
           </button>
           <input
             className="search"

@@ -1,4 +1,4 @@
-import { memo, useMemo } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { CORNE_KEYS, boardBounds, keyId, type KeyGeom } from "../lib/corneLayout";
 import { decode, KC_NO, KC_TRNS, type Decoded } from "../lib/keycodes";
 
@@ -23,6 +23,8 @@ interface Props {
   onSelect?: (k: { row: number; col: number }) => void;
   /** Double-click on a key */
   onActivate?: (k: { row: number; col: number }) => void;
+  /** Drag one key onto another */
+  onSwap?: (from: { row: number; col: number }, to: { row: number; col: number }) => void;
   /** The selected key is waiting for a key press to be assigned */
   capturing?: boolean;
   onHover?: (k: { row: number; col: number } | null) => void;
@@ -40,16 +42,29 @@ export const KeyboardView = memo(function KeyboardView({
   dimmed,
   onSelect,
   onActivate,
+  onSwap,
   capturing,
   onHover,
   testerMode,
 }: Props) {
+  // Drag-to-swap: press on one key, release over another.
+  const [dragFrom, setDragFrom] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState<string | null>(null);
+  useEffect(() => {
+    if (!dragFrom) return;
+    const end = () => {
+      setDragFrom(null);
+      setDragOver(null);
+    };
+    window.addEventListener("mouseup", end);
+    return () => window.removeEventListener("mouseup", end);
+  }, [dragFrom]);
   const vb = useMemo(() => {
     const b = boardBounds(keys);
     return [(b.minX - PAD) * U, (b.minY - PAD) * U, (b.width + PAD * 2) * U, (b.height + PAD * 2) * U].join(" ");
   }, [keys]);
   return (
-    <svg className="board" viewBox={vb} role="group" aria-label="Corne keyboard">
+    <svg className={`board ${dragFrom && dragOver && dragOver !== dragFrom ? "dragging" : ""}`} viewBox={vb} role="group" aria-label="Corne keyboard">
       <defs>
         <linearGradient id="cap" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="var(--cap-top)" />
@@ -72,6 +87,21 @@ export const KeyboardView = memo(function KeyboardView({
             testerMode={testerMode}
             onSelect={onSelect}
             onActivate={onActivate}
+            drag={
+              onSwap
+                ? {
+                    state: dragFrom === id ? "source" : dragFrom && dragOver === id && dragOver !== dragFrom ? "target" : undefined,
+                    start: () => setDragFrom(id),
+                    enter: () => dragFrom && setDragOver(id),
+                    drop: () => {
+                      if (dragFrom && dragFrom !== id) {
+                        const [fr, fc] = dragFrom.split(",").map(Number);
+                        onSwap({ row: fr, col: fc }, { row: k.row, col: k.col });
+                      }
+                    },
+                  }
+                : undefined
+            }
             isCapturing={!!capturing && selected?.row === k.row && selected?.col === k.col}
             onHover={onHover}
           />
@@ -93,6 +123,7 @@ interface CapProps {
   onSelect?: Props["onSelect"];
   onActivate?: Props["onActivate"];
   isCapturing?: boolean;
+  drag?: { state?: "source" | "target"; start: () => void; enter: () => void; drop: () => void };
   onHover?: Props["onHover"];
 }
 
@@ -102,7 +133,7 @@ function legendSize(label: string, w: number): number {
   return base * Math.min(1, w);
 }
 
-function Keycap({ k, d, layer, isSelected, isPressed, isTested, isDimmed, isCapturing, testerMode, onSelect, onActivate, onHover }: CapProps) {
+function Keycap({ k, d, layer, isSelected, isPressed, isTested, isDimmed, isCapturing, testerMode, onSelect, onActivate, onHover, drag }: CapProps) {
   const x = k.x * U + GAP / 2;
   const y = k.y * U + GAP / 2;
   const w = k.w * U - GAP;
@@ -117,6 +148,8 @@ function Keycap({ k, d, layer, isSelected, isPressed, isTested, isDimmed, isCapt
     "cap",
     isSelected && "selected",
     isCapturing && "capturing",
+    drag?.state === "source" && "drag-source",
+    drag?.state === "target" && "drag-target",
     isPressed && "pressed",
     testerMode && isTested && "tested",
     isTrns && "trns",
@@ -135,7 +168,12 @@ function Keycap({ k, d, layer, isSelected, isPressed, isTested, isDimmed, isCapt
       className={classes}
       onClick={() => onSelect?.({ row: k.row, col: k.col })}
       onDoubleClick={() => onActivate?.({ row: k.row, col: k.col })}
-      onMouseEnter={() => onHover?.({ row: k.row, col: k.col })}
+      onMouseDown={(e) => e.button === 0 && drag?.start()}
+      onMouseUp={() => drag?.drop()}
+      onMouseEnter={() => {
+        onHover?.({ row: k.row, col: k.col });
+        drag?.enter();
+      }}
       onMouseLeave={() => onHover?.(null)}
       style={{ "--layer": layerColor(layer), "--accent": accent ?? "transparent" } as React.CSSProperties}
     >

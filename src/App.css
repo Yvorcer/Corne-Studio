@@ -124,6 +124,11 @@ input.search { min-width: 260px; }
 .cap.capturing .cap-top { fill: color-mix(in srgb, var(--primary) 22%, var(--cap-top)); }
 @keyframes capture-pulse { 50% { stroke-opacity: 0.35; } }
 .capture-hint { color: var(--primary); font-weight: 600; }
+.board.dragging { cursor: grabbing; }
+.cap.drag-source .cap-base { stroke: var(--primary); stroke-dasharray: 5 4; }
+.cap.drag-source .cap-top { opacity: 0.55; }
+.cap.drag-target .cap-base { stroke: var(--primary); stroke-width: 3; }
+.cap.drag-target .cap-top { fill: color-mix(in srgb, var(--primary) 25%, var(--cap-top)); }
 .cap.dim .legend { opacity: 0.42; }
 .cap.dim .cap-top { opacity: 0.75; }
 .cap.macro .cap-top { fill: color-mix(in srgb, #f6e05e 18%, var(--cap-top)); }

@@ -16,7 +16,12 @@ interface Edit {
   col: number;
   from: number;
   to: number;
+  /** Edits sharing a group (e.g. both halves of a swap) are undone and redone together */
+  group?: number;
 }
+
+type KeyPos = { row: number; col: number };
+let editGroup = 0;
 
 interface Toast {
   id: number;
@@ -49,6 +54,8 @@ interface State {
   selected: { row: number; col: number } | null;
   /** "Press to assign": the next key typed is assigned to the selected key */
   capturing: boolean;
+  /** "Swap": the next key clicked trades places with the selected key */
+  swapping: boolean;
   undoStack: Edit[];
   redoStack: Edit[];
   toasts: Toast[];
@@ -65,8 +72,11 @@ interface State {
   setLayer: (l: number) => void;
   select: (k: { row: number; col: number } | null) => void;
   setCapturing: (on: boolean) => void;
+  setSwapping: (on: boolean) => void;
+  /** Exchange two keys on the current layer (one undo step) */
+  swapKeys: (a: KeyPos, b: KeyPos) => Promise<void>;
   assign: (code: number) => Promise<void>;
-  setKey: (layer: number, row: number, col: number, code: number, record?: boolean) => Promise<boolean>;
+  setKey: (layer: number, row: number, col: number, code: number, record?: boolean, group?: number) => Promise<boolean>;
   undo: () => Promise<void>;
   redo: () => Promise<void>;
   updateMacros: (macros: Macro[]) => void;
@@ -122,6 +132,7 @@ export const useStore = create<State>((set, get) => ({
   layer: 0,
   selected: null,
   capturing: false,
+  swapping: false,
   undoStack: [],
   redoStack: [],
   toasts: [],
@@ -205,8 +216,33 @@ export const useStore = create<State>((set, get) => ({
 
   setView: (view) => set({ view }),
   setLayer: (layer) => set({ layer }),
-  select: (selected) => set({ selected, capturing: false }),
-  setCapturing: (capturing) => set({ capturing: capturing && get().selected !== null }),
+  select: (selected) => {
+    const { swapping, selected: from } = get();
+    if (swapping && from && selected && (from.row !== selected.row || from.col !== selected.col)) {
+      set({ swapping: false, capturing: false });
+      void get().swapKeys(from, selected);
+      return;
+    }
+    set({ selected, capturing: false, swapping: false });
+  },
+  setCapturing: (capturing) => set({ capturing: capturing && get().selected !== null, swapping: false }),
+  setSwapping: (swapping) => set({ swapping: swapping && get().selected !== null, capturing: false }),
+
+  swapKeys: async (a, b) => {
+    const { layer, keymap } = get();
+    const codeA = keymap[layer]?.[a.row]?.[a.col];
+    const codeB = keymap[layer]?.[b.row]?.[b.col];
+    if (codeA === undefined || codeB === undefined) return;
+    const group = ++editGroup;
+    if (!(await get().setKey(layer, a.row, a.col, codeB, true, group))) return;
+    if (!(await get().setKey(layer, b.row, b.col, codeA, true, group))) {
+      // keep the board consistent: put the first key back
+      await get().setKey(layer, a.row, a.col, codeA, false);
+      set((s) => ({ undoStack: s.undoStack.filter((e) => e.group !== group) }));
+      return;
+    }
+    set({ selected: b });
+  },
 
   assign: async (code) => {
     const { selected, layer } = get();
@@ -214,7 +250,7 @@ export const useStore = create<State>((set, get) => ({
     await get().setKey(layer, selected.row, selected.col, code);
   },
 
-  setKey: async (layer, row, col, code, record = true) => {
+  setKey: async (layer, row, col, code, record = true, group) => {
     const from = get().keymap[layer]?.[row]?.[col];
     if (from === undefined || from === code) return true;
     const patch = (value: number) =>
@@ -226,7 +262,7 @@ export const useStore = create<State>((set, get) => ({
     patch(code); // optimistic
     try {
       await get().via.setKeycode(layer, row, col, code);
-      if (record) set((s) => ({ undoStack: [...s.undoStack.slice(-199), { layer, row, col, from, to: code }], redoStack: [] }));
+      if (record) set((s) => ({ undoStack: [...s.undoStack.slice(-199), { layer, row, col, from, to: code, group }], redoStack: [] }));
       return true;
     } catch (e) {
       patch(from);
@@ -236,17 +272,15 @@ export const useStore = create<State>((set, get) => ({
   },
 
   undo: async () => {
-    const edit = get().undoStack.at(-1);
-    if (!edit) return;
-    if (await get().setKey(edit.layer, edit.row, edit.col, edit.from, false)) {
+    for (const edit of trailingGroup(get().undoStack).reverse()) {
+      if (!(await get().setKey(edit.layer, edit.row, edit.col, edit.from, false))) return;
       set((s) => ({ undoStack: s.undoStack.slice(0, -1), redoStack: [...s.redoStack, edit], layer: edit.layer, selected: { row: edit.row, col: edit.col } }));
     }
   },
 
   redo: async () => {
-    const edit = get().redoStack.at(-1);
-    if (!edit) return;
-    if (await get().setKey(edit.layer, edit.row, edit.col, edit.to, false)) {
+    for (const edit of trailingGroup(get().redoStack).reverse()) {
+      if (!(await get().setKey(edit.layer, edit.row, edit.col, edit.to, false))) return;
       set((s) => ({ redoStack: s.redoStack.slice(0, -1), undoStack: [...s.undoStack, edit], layer: edit.layer, selected: { row: edit.row, col: edit.col } }));
     }
   },
@@ -323,6 +357,16 @@ export const useStore = create<State>((set, get) => ({
     setTimeout(() => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })), kind === "error" ? 6000 : 3000);
   },
 }));
+
+/** The last edit on a stack plus any edits in the same group, oldest first. */
+function trailingGroup(stack: Edit[]): Edit[] {
+  const last = stack.at(-1);
+  if (!last) return [];
+  if (last.group === undefined) return [last];
+  let i = stack.length - 1;
+  while (i > 0 && stack[i - 1].group === last.group) i--;
+  return stack.slice(i);
+}
 
 /** Configure the VIA client and drawing for a recognised (or user-chosen) board, then load it. */
 async function setupBoard(detection: Detection) {
